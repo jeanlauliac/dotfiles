@@ -36,9 +36,6 @@ plugins=(git brew bundler mercurial npm rbenv)
 
 source $ZSH/oh-my-zsh.sh
 
-# Vi keybindings \o/
-bindkey -v
-
 # Disable autocorrect. Is way too annoying for node_module binaries.
 unsetopt correct_all
 
