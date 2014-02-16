@@ -27,16 +27,22 @@ syntax enable
 filetype plugin indent on
 au BufNewFile,BufRead *._coffee set filetype=coffee
 au BufNewFile,BufRead *.adoc set filetype=asciidoc
+au BufNewFile,BufRead *.json set ft=javascript
 
 set t_Co=16
 set background=dark
 color solarized
 
-highlight ExtraWhitespace ctermbg=red guibg=red
-match ExtraWhitespace /\s\+\%#\@<!$/
+highlight ExtraWhitespace ctermbg=darkgreen
+match ExtraWhitespace /\s\+$/
+au InsertEnter * match ExtraWhitespace /\s\+\%#\@<!$/
+au InsertLeave * match ExtraWhitespace /\s\+$/
 
 set wildignore+=*/tmp/*,*/node_modules/*,*.so,*.swp,*.zip
 set wildignore+=*/.git/*,*/.hg/*
+
+let g:gitgutter_realtime = 0
+let g:gitgutter_eager = 0
 
 map <leader>y :CtrlPBuffer<cr>
 
