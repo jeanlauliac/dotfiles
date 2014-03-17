@@ -37,27 +37,21 @@ plugins=(git brew bundler mercurial npm rbenv)
 source $ZSH/oh-my-zsh.sh
 
 # Disable autocorrect. Is way too annoying for node_module binaries.
-unsetopt correct_all
+# unsetopt correct_all
 
-if [ ! "$BOXEN_INSTALLED" ]; then
-    # Obtain the Boxen environment, including nvm.
-    source /opt/boxen/env.sh
-    source /opt/boxen/nvm/nvm.sh
-    export BOXEN_INSTALLED=true
-fi
-
-# Fix for Boxen.
-export CXXFLAGS=$CFLAGS
+# Get nvm
+source $(brew --prefix nvm)/nvm.sh
 
 # Obtain the Ruby environment.
-export RBENV_ROOT=/opt/boxen/homebrew/var/rbenv
-if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
+# export RBENV_ROOT=/opt/boxen/homebrew/var/rbenv
+# if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
 # Obtain the Python environment.
-export PYTHONPATH=/opt/boxen/homebrew/lib/python2.7/site-packages:$PYTHONPATH
+# export PYTHONPATH=/opt/boxen/homebrew/lib/python2.7/site-packages:$PYTHONPATH
 
-# Never use the Mac builtin vi.
+# Aliases
 alias vi=vim
+alias df=df -h
 
 # Game binaries.
 export PATH="$PATH:/usr/games/bin"
@@ -66,10 +60,10 @@ export PATH="$PATH:/usr/games/bin"
 export MANWIDTH=100
 
 # Get Ninja autocompletion.
-_ninja() {
-  reply=(`(ninja -t targets all 2&>/dev/null) | awk -F: '{print $1}'`)
-}
-compctl -K _ninja ninja
+# _ninja() {
+#   reply=(`(ninja -t targets all 2&>/dev/null) | awk -F: '{print $1}'`)
+# }
+# compctl -K _ninja ninja
 
 # Warn about node version.
 echo "Welcome back! Don't forget to set node.js version with nvm."
