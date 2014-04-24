@@ -1,3 +1,4 @@
+set t_Co=16
 
 set number
 set ruler
@@ -29,8 +30,11 @@ au BufNewFile,BufRead *._coffee set filetype=coffee
 au BufNewFile,BufRead *.adoc set filetype=asciidoc
 au BufNewFile,BufRead *.json set ft=javascript
 
-set t_Co=16
 set background=dark
+let g:solarized_visibility = "high"
+let g:solarized_contrast = "high"
+let g:solarized_termcolors=16
+let g:solarized_termtrans = 1
 color solarized
 
 highlight ExtraWhitespace ctermbg=darkgreen

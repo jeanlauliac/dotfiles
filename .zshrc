@@ -47,7 +47,7 @@ source $(brew --prefix nvm)/nvm.sh
 # if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
 
 # Obtain the Python environment.
-# export PYTHONPATH=/opt/boxen/homebrew/lib/python2.7/site-packages:$PYTHONPATH
+if which pyenv > /dev/null; then eval "$(pyenv init -)"; fi
 
 # Aliases
 alias vi=vim
@@ -58,6 +58,11 @@ export PATH="$PATH:/usr/games/bin"
 
 # Manpages settings.
 export MANWIDTH=100
+
+# Alt-left and right
+bindkey -e
+bindkey '[C' forward-word
+bindkey '[D' backward-word
 
 # Get Ninja autocompletion.
 # _ninja() {
