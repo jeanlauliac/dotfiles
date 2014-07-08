@@ -51,7 +51,10 @@ if which pyenv > /dev/null; then eval "$(pyenv init -)"; fi
 
 # Aliases
 alias vi=vim
-alias df=df -h
+alias df="df -h"
+alias mekano="node_modules/.bin/mekano"
+alias mku="node_modules/.bin/mekano update"
+alias mkw="node_modules/.bin/mekano watch"
 
 # Game binaries.
 export PATH="$PATH:/usr/games/bin"
@@ -64,11 +67,10 @@ bindkey -e
 bindkey '[C' forward-word
 bindkey '[D' backward-word
 
-# Get Ninja autocompletion.
-# _ninja() {
-#   reply=(`(ninja -t targets all 2&>/dev/null) | awk -F: '{print $1}'`)
-# }
-# compctl -K _ninja ninja
+# C/C++ env.
+export CMAKE_PREFIX_PATH=~/Qt/5.2.1/clang_64/lib/cmake/
+export CXX=/usr/local/bin/g++-4.8
+export CC=/usr/local/bin/gcc-4.8
 
 # Warn about node version.
 echo "Welcome back! Don't forget to set node.js version with nvm."
