@@ -9,6 +9,8 @@ const RepoType = {NONE: 0, GIT: 1, HG: 2};
 const HG_META_FOLDER = '.hg';
 const GIT_META_FOLDER = '.git';
 
+const BIRTH_DATE = new Date('1990-09-24');
+
 const HgSpecialState = {
   NONE: 0,
   BISECT: 1,
@@ -60,6 +62,9 @@ const signals = ['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP',
     writeHgInfo(write, repoFolder);
     break;
   }
+  write(' ');
+  writeAge(write);
+  write(' ');
   //writeExitCode(write, args.exitCode);
   write('$ \n');
 })();
@@ -203,6 +208,11 @@ function writeExitCode(write, exitCode) {
     return;
   }
   write(`(${getStyle(35)}${exitCode}${getStyle(0)})`);
+}
+
+function writeAge(write) {
+  const age = ((new Date()) - BIRTH_DATE)/1000/60/60/24/365.25;
+  write(`${getStyle(2)}${age.toFixed(3)}${getStyle(0)}`);
 }
 
 function getStyle(...codes) {
