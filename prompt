@@ -1,1 +1,210 @@
-/Users/jeanlauliac/Dropbox (Personal)/bin/prompt
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const {execSync} = require('child_process');
+
+const RepoType = {NONE: 0, GIT: 1, HG: 2};
+const HG_META_FOLDER = '.hg';
+const GIT_META_FOLDER = '.git';
+
+const HgSpecialState = {
+  NONE: 0,
+  BISECT: 1,
+  GRAFT: 2,
+  UNSHELVE: 3,
+  REBASE: 4,
+  MERGE: 5,
+  LOCK: 6,
+  WLOCK: 7,
+};
+
+const HG_STATE_FILES = [
+  ['bisect.state', HgSpecialState.BISECT],
+  ['histedit-state', HgSpecialState.HISTEDIT],
+  ['graftstate', HgSpecialState.GRAFT],
+  ['unshelverebasestate', HgSpecialState.UNSHELVE],
+  ['rebasestate', HgSpecialState.REBASE],
+  ['merge', HgSpecialState.MERGE],
+  ['store/lock', HgSpecialState.LOCK],
+  ['wlock', HgSpecialState.WLOCK],
+];
+
+const signals = ['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP',
+                 'SIGIOT', 'SIGBUS', 'SIGFPE', 'SIGKILL', 'SIGUSR1', 'SIGSEGV',
+                 'SIGUSR2', 'SIGPIPE', 'SIGALRM', 'SIGTERM', 'SIGSTKFLT',
+                 'SIGCHLD', 'SIGCONT', 'SIGSTOP', 'SIGTSTP', 'SIGTTIN',
+                 'SIGTTOU'];
+
+(function main() {
+  const args = parseArgs(process.argv);
+  const write = process.stdout.write.bind(process.stdout);
+  //write('[');
+  const cwdPath = process.cwd();
+  let repoFolder = cwdPath;
+  let repoType = checkRepo(repoFolder);
+  while (repoFolder != '/' && repoType === RepoType.NONE) {
+    repoFolder = path.dirname(repoFolder);
+    repoType = checkRepo(repoFolder);
+  }
+  writeWorkingPath(write, cwdPath, repoFolder === '/' ? null : repoFolder);
+  //write(']');
+  switch (repoType) {
+  case RepoType.GIT:
+    write(' ');
+    writeGitInfo(write);
+    break;
+  case RepoType.HG:
+    write(' ');
+    writeHgInfo(write, repoFolder);
+    break;
+  }
+  //writeExitCode(write, args.exitCode);
+  write('$ \n');
+})();
+
+function parseArgs(argv) {
+  const procName = argv[1];
+  const warn = msg =>
+    console.warn(`${procName}: warning: ${msg}`);
+  const exitCodeStr = argv[2];
+  const exitCode = Number.parseInt(exitCodeStr, 10);
+  if (!Number.isInteger(exitCode)) {
+    warn('first argument needs to be the exit code of previous process. Ex. `$?`.');
+    return {exitCode: 0};
+  }
+  return {exitCode};
+}
+
+function writeGitInfo(write) {
+  const branchName = getExecOutput('git rev-parse --abbrev-ref HEAD');
+  write(`(${getStyle(36)}${branchName}${getStyle(0)}`);
+  const statusLines = execSync('git status --porcelain', {encoding: 'utf8'}).split('\n');
+  if (statusLines.length > 1) {
+    write(`${getStyle(1)}*${getStyle(0)}`);
+  }
+  write(')');
+}
+
+function writeHgInfo(write, repoFolder) {
+  const bookmarkName = getHgCurrentBookmark(repoFolder);
+  if (bookmarkName != null) {
+    write(`(${getStyle(36)}${bookmarkName}${getStyle(0)}`);
+  } else {
+    const hash = getHgCurrentHash(repoFolder);
+    write(`(~${getStyle(36)}${hash.substr(0, 10)}${getStyle(0)}`);
+  }
+  const spst = getHgSpecialState(repoFolder);
+  if (spst !== HgSpecialState.NONE) {
+    write(`|${getStyle(31)}${getHgStateLabel(spst)}${getStyle(0)}`);
+  }
+  write(')');
+}
+
+function writeWorkingPath(write, cwdPath, repoPath) {
+  if (repoPath === null) {
+    write(simplifyPath(cwdPath));
+    return;
+  }
+  innerPath = shortenPath(cwdPath.substring(repoPath.length));
+  repoPath = simplifyPath(repoPath);
+  const repoName = path.basename(repoPath);
+  parentPath = path.dirname(repoPath);
+  write(`${getStyle(1)}${repoName}${getStyle(0)}${innerPath}`);
+}
+
+function shortenPath(dirPath) {
+  const parts = dirPath.split(path.sep);
+  if (parts.length <= 3) {
+    return dirPath;
+  }
+  return path.sep + ['...'].concat(parts.slice(-2)).join(path.sep);
+}
+
+function simplifyPath(dirPath) {
+  if (dirPath.startsWith(process.env.HOME)) {
+    dirPath = '~' + dirPath.substring(process.env.HOME.length);
+  }
+  return dirPath;
+}
+
+function getHgSpecialState(repoPath) {
+  for (const entry of HG_STATE_FILES) {
+    if (fs.existsSync(path.join(repoPath, HG_META_FOLDER, entry[0]))) {
+      return entry[1];
+    }
+  }
+  return HgSpecialState.NONE;
+}
+
+function getHgStateLabel(specialState) {
+  switch (specialState) {
+  case HgSpecialState.BISECT: return 'bisect';
+  case HgSpecialState.HISTEDIT: return 'histedit';
+  case HgSpecialState.GRAFT: return 'graft';
+  case HgSpecialState.UNSHELVE: return 'unshelve';
+  case HgSpecialState.REBASE: return 'rebase';
+  case HgSpecialState.MERGE: return 'merge';
+  case HgSpecialState.LOCK: return 'store-locked';
+  case HgSpecialState.WLOCK: return 'wdir-locked';
+  }
+}
+
+function getHgCurrentHash(repoPath) {
+  const filePath = path.join(repoPath, HG_META_FOLDER, 'dirstate');
+  return readFileSafely(filePath, 'r', fd => {
+    const buf = new Buffer(20);
+    if (fs.readSync(fd, buf, 0, 20, 0) < 20) {
+      throw new Error('could not read hash of current Mercurial changeset');
+    }
+    return buf.toString('hex');
+  });
+}
+
+function readFileSafely(filePath, flags, handler) {
+  const fd = fs.openSync(filePath, flags);
+  try {
+    return handler(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function getExecOutput(cli) {
+  return execSync(cli, {encoding: 'utf8'}).split('\n')[0];
+}
+
+function checkRepo(dirPath) {
+  if (fs.existsSync(path.join(dirPath, GIT_META_FOLDER))) return RepoType.GIT;
+  if (fs.existsSync(path.join(dirPath, HG_META_FOLDER))) return RepoType.HG;
+  return RepoType.NONE;
+}
+
+function getHgCurrentBookmark(repoPath) {
+  const bookmarkFile = path.join(repoPath, HG_META_FOLDER, 'bookmarks.current');
+  try {
+    const data = fs.readFileSync(bookmarkFile, 'utf8');
+    return data;
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function writeExitCode(write, exitCode) {
+  if (exitCode === 0) return;
+  const sigIx = exitCode - 129;
+  if (sigIx >= 0 && sigIx < signals.length) {
+    const name = signals[sigIx];
+    write(`(${getStyle(35)}${name}${getStyle(0)})`);
+    return;
+  }
+  write(`(${getStyle(35)}${exitCode}${getStyle(0)})`);
+}
+
+function getStyle(...codes) {
+  return `\\[\\033[${codes.map(x => x.toString()).join(';')}m\\]`;
+}
