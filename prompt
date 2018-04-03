@@ -62,9 +62,9 @@ const signals = ['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP',
     writeHgInfo(write, repoFolder);
     break;
   }
-  write(' ');
-  writeAge(write);
-  write(' ');
+  //write(' ');
+  //writeAge(write);
+  //write(' ');
   //writeExitCode(write, args.exitCode);
   write('$ \n');
 })();
@@ -212,7 +212,7 @@ function writeExitCode(write, exitCode) {
 
 function writeAge(write) {
   const age = ((new Date()) - BIRTH_DATE)/1000/60/60/24/365.25;
-  write(`${getStyle(2)}${age.toFixed(3)}${getStyle(0)}`);
+  write(`${getStyle(2)}(${age.toFixed(3)})${getStyle(0)}`);
 }
 
 function getStyle(...codes) {
